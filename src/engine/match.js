@@ -16,7 +16,6 @@ export function buildFace(a) {
   const dryClimate = a.climate === "dryAir";
   const cityStress = a.climate === "city";
   const humid = a.climate === "humidity";
-  const sunSeason = a.climate === "sunSeason";
   const wantsMakeup = a.makeup === "yes" || a.makeup === "sometimes";
   const sensitiveAging = a.skinType === "sensitive" && a.concern === "aging";
   const hasConcern = (c) => a.concern === c || also.has(c);
@@ -212,15 +211,13 @@ export function buildFace(a) {
     am.push(item(FACE.lipBalm, "Lips", "Clean, intensive lip care — zero petroleum"));
   }
 
-  // After sun: never AM. Evening / as-needed only.
-  if (ex.includes("afterSun") || sunSeason) {
+  // After sun: only when they asked for it — never from climate alone, never AM
+  if (ex.includes("afterSun")) {
     pm.push(
       item(
         FACE.afterSun,
         "As needed · after sun",
-        sunSeason && !ex.includes("afterSun")
-          ? "Outdoor season — soothe and soft-glow support after the day (not SPF). Skip on indoor days."
-          : "After-sun care with a soft glow boost — use after outdoor days, not as a morning step"
+        "After-sun care with a soft glow boost — use after outdoor days, not as a morning step"
       )
     );
   }
@@ -280,10 +277,10 @@ export function buildBody(a) {
     out.push(item(milk, "Body", skinWhy));
     out.push(item(BODY.deodorant, "Deodorant", "No aluminium salts; lemon verbena supports sweat regulation rather than blocking it"));
     out.push(item(BODY.handBalm, "Hands", "Light enough to reapply constantly — and it works on pigment spots"));
-    if (bx.includes("legs") || has("legs")) {
+    if (bx.includes("legs")) {
       out.push(item(BODY.lightLegs, "Legs", "Cooling care for heavy, tired, end-of-day legs"));
     }
-    if (bx.includes("afterSun") || has("afterSun")) {
+    if (bx.includes("afterSun")) {
       out.push(item(FACE.afterSun, "After sun", "Post-outdoor soothe + soft glow — for body as much as face"));
     }
     if (bx.includes("scrub")) {
@@ -327,7 +324,7 @@ export function buildBody(a) {
   if (has("legs") || bx.includes("legs")) {
     out.push(item(BODY.lightLegs, "Legs", "Cooling botanical care for heavy, tired, or heat-swollen legs"));
   }
-  if (has("afterSun") || bx.includes("afterSun")) {
+  if (bx.includes("afterSun")) {
     out.push(item(FACE.afterSun, "After sun", "Soothe after outdoor days and support a soft, even glow — not SPF"));
   }
   if (bx.includes("scrub")) {

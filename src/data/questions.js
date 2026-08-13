@@ -56,7 +56,7 @@ export const FACE_Q = [
       { v: "dryAir", label: "Dry air or harsh winters", sub: "Heat, AC, or cold that strips moisture" },
       { v: "city", label: "City air & screens", sub: "Pollution, blue light, long indoor days" },
       { v: "humidity", label: "Humidity & heat", sub: "Sweat, shine, products that feel heavy" },
-      { v: "sunSeason", label: "Lots of outdoor / sun time", sub: "Beach, garden, patio — after-sun matters" },
+      { v: "sunSeason", label: "Lots of outdoor / sun time", sub: "Beach, garden, patio — days that wear on skin" },
       { v: "balanced", label: "Pretty mild most of the year", sub: "Nothing extreme — just life" },
     ],
   },
