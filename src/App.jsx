@@ -17,6 +17,7 @@ import {
   formatTextBrief,
   formatLinksBrief,
   buildRestoreUrl,
+  buildShelfContinueUrl,
   readMatchFromLocation,
   openInstagramToTaylor,
   openWhatsAppToTaylor,
@@ -642,10 +643,10 @@ export default function App() {
 
             <div className="cta-block share-footer">
               <div className="cta-eyebrow">Save &amp; send</div>
-              <h3>Send this to Taylor</h3>
+              <h3>Keep this on your shelf</h3>
               <p>
-                Name it for a screenshot, then IG or WhatsApp the brief (@toxinfreetay) — or copy
-                the match link so I can open the exact same results.
+                Continue on your shelf so I can see your match — suggestions land on your wishlist,
+                not your cabinet. Or IG / WhatsApp the brief if you’d rather.
               </p>
 
               <label className="name-field name-field-on-pine">
@@ -671,7 +672,13 @@ export default function App() {
               </div>
 
               <div className="cta-actions">
-                <button type="button" className="btn-brass" onClick={instagramTaylor}>
+                <a
+                  className="btn-brass"
+                  href={path ? buildShelfContinueUrl({ path, ans, name: guestName }) : "https://shelf.taygoesfresh.com/?with=tay"}
+                >
+                  Continue on your shelf
+                </a>
+                <button type="button" className="btn-ghost btn-ghost-on-pine" onClick={instagramTaylor}>
                   Message on IG
                 </button>
                 <button type="button" className="btn-ghost btn-ghost-on-pine" onClick={whatsAppTaylor}>

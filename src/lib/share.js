@@ -98,6 +98,11 @@ export function buildRestoreUrl(baseUrl, { path, ans, name }) {
   return `${clean}#m=${token}`;
 }
 
+export function buildShelfContinueUrl({ path, ans, name }) {
+  const token = encodeMatchState({ path, ans, name });
+  return `https://shelf.taygoesfresh.com/?with=tay#m=${token}`;
+}
+
 export function readMatchFromLocation(loc = window.location) {
   const hash = loc.hash || "";
   const m = hash.match(/[#&]m=([^&]+)/);
