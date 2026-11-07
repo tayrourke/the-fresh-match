@@ -19,6 +19,7 @@ export function formatTextBrief({ summary, hero, playbook, restoreUrl, name }) {
   }
   lines.push(
     "",
+    "This is just a recommendation, not a prescription. Please check it with Taylor before you order.",
     "Educational match only — not medical advice.",
     restoreUrl ? `Open this match: ${restoreUrl}` : null
   );
@@ -26,11 +27,12 @@ export function formatTextBrief({ summary, hero, playbook, restoreUrl, name }) {
 }
 
 /** Same brief with ringana.com links for shopping. */
-export function formatLinksBrief({ summary, hero, playbook, restoreUrl, name }) {
+export function formatLinksBrief({ summary, hero, playbook, restoreUrl, name, shopHost }) {
   const who = name?.trim() ? `${name.trim()}'s Fresh Match` : "My Fresh Match";
   const lines = [
     `${who} — Ringana with Taylor`,
     summary ? `Profile: ${summary}` : null,
+    shopHost ? `Shop: https://${shopHost}/?lang=en` : null,
     "",
     "Start here:",
     ...(hero?.items || []).map((p, i) => `${i + 1}. ${p.name}${p.url ? `\n   ${p.url}` : ""}`),
@@ -44,6 +46,7 @@ export function formatLinksBrief({ summary, hero, playbook, restoreUrl, name }) 
   }
   lines.push(
     "",
+    "This is just a recommendation, not a prescription. Please check it with Taylor before you order.",
     "Educational match only — not medical advice.",
     restoreUrl ? `Open this match: ${restoreUrl}` : null
   );

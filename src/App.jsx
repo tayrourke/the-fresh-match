@@ -13,6 +13,7 @@ import {
 import { ProductList } from "./components/ProductRow";
 import { LeaveBehindCard } from "./components/LeaveBehindCard";
 import { LegitSection } from "./components/LegitSection";
+import { ShelfPrompt } from "./components/ShelfPrompt";
 import {
   formatTextBrief,
   formatLinksBrief,
@@ -22,7 +23,15 @@ import {
   openInstagramToTaylor,
   openWhatsAppToTaylor,
 } from "./lib/share";
+import { withPartnerLinks } from "./lib/shopLinks";
 import "./index.css";
+
+const TAYLOR_SHOP = {
+  origin: "https://taylor.ringana.us",
+  host: "taylor.ringana.us",
+  code: "",
+  weblink: "",
+};
 
 const FLODESK_FORM_ID = "6a4d7c6b23b85452ae98771e";
 const QUIZ_URL =
@@ -33,21 +42,18 @@ const QUIZ_URL =
 const PATHS = [
   {
     v: "skin",
-    t: "Skincare & personal care",
-    s: "Face, body, hair — matched to your skin",
-    meta: "~12 questions",
+    t: "Face, body, and hair",
+    s: "How you wash, and the products you use every day",
   },
   {
     v: "supp",
     t: "Supplements",
-    s: "Overall foundation or targeted — matched to what you want more of",
-    meta: "~5 questions",
+    s: "A daily base, or something more specific",
   },
   {
     v: "both",
-    t: "Inside & out",
-    s: "The full match — skin, swaps, and supplements",
-    meta: "~16 questions",
+    t: "The whole routine",
+    s: "Skin, everyday products, and supplements",
   },
 ];
 
@@ -272,12 +278,15 @@ export default function App() {
     [path, ans, guestName]
   );
 
+  const linkItems = (items) => withPartnerLinks(items, TAYLOR_SHOP);
+
   const briefPayload = () => ({
     summary,
-    hero,
-    playbook,
+    hero: hero ? { ...hero, items: linkItems(hero.items) } : hero,
+    playbook: playbook ? { ...playbook, addNext: linkItems(playbook.addNext) } : playbook,
     restoreUrl,
     name: guestName,
+    shopHost: TAYLOR_SHOP.host,
   });
 
   const copyText = async () => {
@@ -372,23 +381,22 @@ export default function App() {
                     decoding="async"
                   />
                 </div>
-                <div className="eyebrow">A two-minute match</div>
+                <div className="eyebrow">The Fresh Match</div>
                 <h1>
-                  The Fresh <em>Match</em>
+                  What I&apos;d <em>start</em> you with
                 </h1>
                 <p className="intro-lead">
-                  After hours diving into these formulas and ingredients, I built this to help you
-                  choose the Ringana that actually fits — without the overwhelm.
+                  Tell me how you wash, what your skin is doing, and what you want to swap out.
+                  I&apos;ll give you the short list, and you can send it straight to me.
                 </p>
 
-                <div className="path-label">What are you here for?</div>
+                <div className="path-label">Where do you want to start?</div>
                 <div className="path-grid">
                   {PATHS.map((o) => (
                     <button key={o.v} type="button" className="path-btn" onClick={() => start(o.v)}>
                       <span className="path-btn-main">
                         <span className="t">{o.t}</span>
                         <span className="s">{o.s}</span>
-                        <span className="m">{o.meta}</span>
                       </span>
                       <span className="path-arrow" aria-hidden>
                         →
@@ -397,14 +405,14 @@ export default function App() {
                   ))}
                 </div>
                 <p className="intro-note">
-                  An educational tool from an independent Ringana Fresh Partner — not an official
-                  Ringana site, and not medical advice.
+                  This quiz is just a recommendation. Send it to me before you order. It is not an
+                  official Ringana site, and not medical advice.
                 </p>
-                <p className="copyright">© 2026 Swaps Made Simple LLC</p>
               </div>
             </div>
 
             <LegitSection />
+            <p className="copyright">© 2026 Swaps Made Simple LLC</p>
           </div>
         )}
 
@@ -514,11 +522,19 @@ export default function App() {
               summary={summary}
             />
 
+            <p className="recommend-note">
+              This quiz is just a recommendation from your answers, not a prescription. Send it to
+              me before you order and I&apos;ll help you sort what to start with.
+            </p>
+            <p className="shop-note">
+              Every product that is on the US shop opens at taylor.ringana.us.
+            </p>
+
             {hero?.items?.length > 0 && (
               <>
                 <SectionLabel>{hero.title}</SectionLabel>
                 <p className="section-blurb">{hero.subtitle}</p>
-                <ProductList items={hero.items} openFirst />
+                <ProductList items={linkItems(hero.items)} openFirst />
               </>
             )}
 
@@ -531,7 +547,7 @@ export default function App() {
 
             {playbook && (
               <div className="playbook-card">
-                <div className="insight-label">Your first-order playbook</div>
+                <div className="insight-label">How to start</div>
                 <div className="playbook-grid">
                   <div>
                     <h4>Buy first</h4>
@@ -578,13 +594,13 @@ export default function App() {
             {face && (
               <>
                 <SectionLabel>Morning</SectionLabel>
-                <ProductList items={face.am} />
+                <ProductList items={linkItems(face.am)} />
                 <SectionLabel>Evening</SectionLabel>
-                <ProductList items={face.pm} />
+                <ProductList items={linkItems(face.pm)} />
                 {face.weekly.length > 0 && (
                   <>
                     <SectionLabel>Weekly</SectionLabel>
-                    <ProductList items={face.weekly} />
+                    <ProductList items={linkItems(face.weekly)} />
                   </>
                 )}
               </>
@@ -593,7 +609,7 @@ export default function App() {
             {body && body.length > 0 && (
               <>
                 <SectionLabel>Your everyday swaps</SectionLabel>
-                <ProductList items={body} />
+                <ProductList items={linkItems(body)} />
               </>
             )}
 
@@ -604,7 +620,7 @@ export default function App() {
                     <SectionLabel>
                       {supp.approach === "targeted" ? "Suggested foundation" : "Overall foundation"}
                     </SectionLabel>
-                    <ProductList items={supp.daily} />
+                    <ProductList items={linkItems(supp.daily)} />
                   </>
                 )}
                 {supp.targeted.length > 0 && (
@@ -612,7 +628,7 @@ export default function App() {
                     <SectionLabel>
                       {supp.approach === "overall" ? "Focused add-ons" : "Targeted for your goals"}
                     </SectionLabel>
-                    <ProductList items={supp.targeted} />
+                    <ProductList items={linkItems(supp.targeted)} />
                   </>
                 )}
               </>
@@ -736,6 +752,13 @@ export default function App() {
           </div>
         )}
       </div>
+      <ShelfPrompt
+        active={screen === "results"}
+        href="https://shelf.taygoesfresh.com/?with=tay"
+        title="Want this on your shelf?"
+        body="Open Fresh Shelf and this match can sit on your wishlist. I'll be able to see it there."
+        action="Open your shelf"
+      />
 
       {formOpen && (
         <div className="fd-overlay" role="dialog" aria-modal="true" aria-label="Join founding list">
