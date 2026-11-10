@@ -365,6 +365,7 @@ export function buildBody(a) {
   const auto = raw.includes("auto") || raw.length === 0;
   const has = (k) => auto || raw.includes(k);
   const bx = a.bodyExtras || [];
+  const asked = (k) => raw.includes(k) || bx.includes(k);
 
   const milk = a.bodySkin === "veryDry" ? BODY.bodyMilkRich : BODY.bodyMilk;
   const skinWhy = {
@@ -384,10 +385,10 @@ export function buildBody(a) {
     if (bx.includes("legs")) {
       out.push(item(BODY.lightLegs, "Legs", "Cooling care for heavy, tired, end-of-day legs"));
     }
-    if (bx.includes("afterSun")) {
+    if (asked("afterSun")) {
       out.push(item(FACE.afterSun, "After sun", "Post-outdoor soothe + soft glow — for body as much as face"));
     }
-    if (bx.includes("scrub")) {
+    if (asked("scrub")) {
       out.push(item(FACE.scrub, "Polish", "Face & body scrub when you want a physical reset"));
     }
     if (a.hairType !== "skipHair") {
@@ -428,10 +429,10 @@ export function buildBody(a) {
   if (has("legs") || bx.includes("legs")) {
     out.push(item(BODY.lightLegs, "Legs", "Cooling botanical care for heavy, tired, or heat-swollen legs"));
   }
-  if (bx.includes("afterSun")) {
+  if (asked("afterSun")) {
     out.push(item(FACE.afterSun, "After sun", "Soothe after outdoor days and support a soft, even glow — not SPF"));
   }
-  if (bx.includes("scrub")) {
+  if (asked("scrub")) {
     out.push(item(FACE.scrub, "Polish", "Gentle face & body scrub — once a week is plenty"));
   }
 
