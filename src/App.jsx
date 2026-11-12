@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FACE_Q, BODY_Q, SUPP_Q, INTENT_Q } from "./data/questions";
 import {
   buildFace,
@@ -83,6 +83,21 @@ function SectionLabel({ children }) {
   );
 }
 
+function fitBrandMark(el) {
+  if (!el) return;
+  const available = el.clientWidth;
+  if (available < 48) return;
+  let lo = 16;
+  let hi = 76;
+  for (let n = 0; n < 16; n += 1) {
+    const mid = (lo + hi) / 2;
+    el.style.fontSize = `${mid}px`;
+    if (el.scrollWidth <= available + 1) lo = mid;
+    else hi = mid;
+  }
+  el.style.fontSize = `${lo}px`;
+}
+
 export default function App() {
   const [screen, setScreen] = useState("intro");
   const [path, setPath] = useState(null);
@@ -102,6 +117,19 @@ export default function App() {
   const [reachEmail, setReachEmail] = useState("");
   const [reachError, setReachError] = useState("");
   const [reachBusy, setReachBusy] = useState(false);
+  const brandRef = useRef(null);
+
+  useEffect(() => {
+    const el = brandRef.current;
+    if (!el) return undefined;
+    const fit = () => fitBrandMark(el);
+    fit();
+    const fonts = document.fonts;
+    if (fonts?.ready) fonts.ready.then(fit);
+    const observer = new ResizeObserver(fit);
+    if (el.parentElement) observer.observe(el.parentElement);
+    return () => observer.disconnect();
+  }, []);
 
   const qs = useMemo(() => buildQs(path, ans), [path, ans]);
 
@@ -436,7 +464,7 @@ export default function App() {
     <div className="app">
       <div className="brand-top">
         <img className="brand-stamp" src="./grove-stamp.png" alt="The Fresh Grove" />
-        <a className="brand-mark" href="https://taygoesfresh.com/" target="_blank" rel="noreferrer">
+        <a ref={brandRef} className="brand-mark" href="https://taygoesfresh.com/" target="_blank" rel="noreferrer">
           Ringana <span>with&nbsp;Taylor</span>
         </a>
       </div>
