@@ -437,7 +437,7 @@ export default function App() {
       <div className="brand-top">
         <img className="brand-stamp" src="./grove-stamp.png" alt="The Fresh Grove" />
         <a className="brand-mark" href="https://taygoesfresh.com/" target="_blank" rel="noreferrer">
-          Ringana <span>with Taylor</span>
+          Ringana <span>with&nbsp;Taylor</span>
         </a>
       </div>
 
@@ -456,7 +456,8 @@ export default function App() {
                 </div>
                 <div className="eyebrow">The Fresh Match</div>
                 <h1>
-                  Find your <em>freshest</em> routine
+                  Find your<br />
+                  <span className="h1-line"><em>freshest</em> routine</span>
                 </h1>
                 <p className="intro-lead">
                   A few questions about where you are now, what you&apos;re looking to improve, and
