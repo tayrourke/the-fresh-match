@@ -24,6 +24,7 @@ import {
   openWhatsAppToTaylor,
 } from "./lib/share";
 import { withPartnerLinks } from "./lib/shopLinks";
+import { sendQuizLead } from "./lib/quizLead";
 import "./index.css";
 
 const TAYLOR_SHOP = {
@@ -37,7 +38,8 @@ const FLODESK_FORM_ID = "6a4d7c6b23b85452ae98771e";
 const QUIZ_URL =
   typeof window !== "undefined"
     ? `${window.location.origin}${window.location.pathname}`
-    : "https://tayrourke.github.io/the-fresh-match/";
+    : "https://quiz.taygoesfresh.com/";
+const PUBLIC_QUIZ_URL = "https://quiz.taygoesfresh.com/";
 
 const PATHS = [
   {
@@ -95,6 +97,11 @@ export default function App() {
   const [sentHint, setSentHint] = useState("");
   const [guestName, setGuestName] = useState("");
   const [restoredBanner, setRestoredBanner] = useState(false);
+  const [reachName, setReachName] = useState("");
+  const [reachSocial, setReachSocial] = useState("");
+  const [reachEmail, setReachEmail] = useState("");
+  const [reachError, setReachError] = useState("");
+  const [reachBusy, setReachBusy] = useState(false);
 
   const qs = useMemo(() => buildQs(path, ans), [path, ans]);
 
@@ -155,9 +162,64 @@ export default function App() {
       }
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else {
-      setScreen("results");
+      setScreen("reach");
+      setReachError("");
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
+  };
+
+  const reachEmailOk = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+
+  const submitReach = async () => {
+    if (reachBusy) return;
+    const name = reachName.trim().replace(/\s+/g, " ");
+    const social = reachSocial.trim().replace(/^@+/, "").trim();
+    const email = reachEmail.trim();
+    if (name.length < 2) {
+      setReachError("Add your name.");
+      return;
+    }
+    if (!(social || reachEmailOk(email))) {
+      setReachError(
+        email
+          ? "That email doesn’t look right."
+          : "Add your social media handle or your email."
+      );
+      return;
+    }
+    const matchUrl = buildRestoreUrl(PUBLIC_QUIZ_URL, { path, ans, name });
+    setReachError("");
+    setReachBusy(true);
+    try {
+      await sendQuizLead({
+        name,
+        email: reachEmailOk(email) ? email : "",
+        social,
+        matchUrl,
+      });
+    } catch {
+      /* The match still opens. A missed save should not hide it. */
+    }
+    setGuestName(name);
+    setReachBusy(false);
+    setScreen("results");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const backFromReach = () => {
+    const last = Math.max(0, qs.length - 1);
+    const prev = qs[last];
+    setI(last);
+    if (prev?.single) {
+      setPicked(ans[prev.id] ?? null);
+      setDraft([]);
+    } else {
+      setDraft(Array.isArray(ans[prev.id]) ? ans[prev.id] : []);
+      setPicked(null);
+    }
+    setReachError("");
+    setScreen("quiz");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const start = (p) => {
@@ -173,6 +235,11 @@ export default function App() {
     setSentHint("");
     setRestoredBanner(false);
     setGuestName("");
+    setReachName("");
+    setReachSocial("");
+    setReachEmail("");
+    setReachError("");
+    setReachBusy(false);
     window.history.replaceState(null, "", window.location.pathname + window.location.search);
   };
 
@@ -232,6 +299,11 @@ export default function App() {
     setSentHint("");
     setRestoredBanner(false);
     setGuestName("");
+    setReachName("");
+    setReachSocial("");
+    setReachEmail("");
+    setReachError("");
+    setReachBusy(false);
     window.history.replaceState(null, "", window.location.pathname + window.location.search);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -363,7 +435,8 @@ export default function App() {
   return (
     <div className="app">
       <div className="brand-top">
-        <a href="https://tayrourke.github.io/tay-goes-fresh/" target="_blank" rel="noreferrer">
+        <img className="brand-stamp" src="./grove-stamp.png" alt="The Fresh Grove" />
+        <a className="brand-mark" href="https://taygoesfresh.com/" target="_blank" rel="noreferrer">
           Ringana <span>with Taylor</span>
         </a>
       </div>
@@ -383,11 +456,11 @@ export default function App() {
                 </div>
                 <div className="eyebrow">The Fresh Match</div>
                 <h1>
-                  What I&apos;d <em>start</em> you with
+                  Find your <em>freshest</em> routine
                 </h1>
                 <p className="intro-lead">
-                  Tell me how you wash, what your skin is doing, and what you want to swap out.
-                  I&apos;ll give you the short list, and you can send it straight to me.
+                  A few questions about where you are now, what you&apos;re looking to improve, and
+                  what you want more of.
                 </p>
 
                 <div className="path-label">Where do you want to start?</div>
@@ -404,15 +477,23 @@ export default function App() {
                     </button>
                   ))}
                 </div>
-                <p className="intro-note">
-                  This quiz is just a recommendation. Send it to me before you order. It is not an
-                  official Ringana site, and not medical advice.
-                </p>
               </div>
             </div>
 
             <LegitSection />
-            <p className="copyright">© 2026 Swaps Made Simple LLC</p>
+            <footer className="intro-foot">
+              <p className="exclusive-note">
+                Someone shared this with you. Keep it between the two of you.
+              </p>
+              <p className="intro-disclaimer">
+                Taylor is an independent Ringana partner. This is not an official Ringana site, and
+                it is not medical advice. A match is a general suggestion from your answers.
+                Statements about supplements have not been evaluated by the Food and Drug
+                Administration. These products are not intended to diagnose, treat, cure, or prevent
+                any disease.
+              </p>
+              <p className="copyright">© 2026 Swaps Made Simple LLC</p>
+            </footer>
           </div>
         )}
 
@@ -475,7 +556,7 @@ export default function App() {
                   onClick={confirmSingle}
                   disabled={!picked}
                 >
-                  {i + 1 === qs.length ? "See my match" : "Continue"}
+                  Continue
                 </button>
               ) : (
                 <button
@@ -484,17 +565,92 @@ export default function App() {
                   onClick={submitMulti}
                   disabled={multiBlocked}
                 >
-                  {i + 1 === qs.length
-                    ? "See my match"
-                    : draft.length
-                      ? "Continue"
-                      : goalsNeedPick
-                        ? "Pick at least one"
-                        : "Skip — continue"}
+                  {draft.length
+                    ? "Continue"
+                    : goalsNeedPick
+                      ? "Pick at least one"
+                      : "Skip — continue"}
                 </button>
               )}
             </div>
             {q.single && <p className="quiz-hint">Select an answer, then continue</p>}
+          </div>
+        )}
+
+        {screen === "reach" && (
+          <div className="quiz">
+            <div className="progress-wrap">
+              <div className="progress-top">
+                <span className="progress-label">Before your match</span>
+                <span className="progress-count">
+                  {qs.length + 1} of {qs.length + 1}
+                </span>
+              </div>
+              <div className="progress-bar" aria-hidden>
+                <div className="progress-fill" style={{ width: "100%" }} />
+              </div>
+            </div>
+
+            <div className="question-card">
+              <h2 className="question-text">Add your name to this match</h2>
+              <p className="question-sub">Your name, and a social handle or an email.</p>
+              <div className="reach-fields">
+                <label className="reach-field">
+                  <span>Name</span>
+                  <input
+                    type="text"
+                    autoComplete="name"
+                    placeholder="Your name"
+                    value={reachName}
+                    onChange={(event) => {
+                      setReachName(event.target.value);
+                      if (reachError) setReachError("");
+                    }}
+                  />
+                </label>
+                <label className="reach-field">
+                  <span>Social media handle</span>
+                  <input
+                    type="text"
+                    inputMode="text"
+                    autoComplete="username"
+                    placeholder="@yourhandle"
+                    value={reachSocial}
+                    onChange={(event) => {
+                      setReachSocial(event.target.value);
+                      if (reachError) setReachError("");
+                    }}
+                  />
+                </label>
+                <label className="reach-field">
+                  <span>Email</span>
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    placeholder="you@email.com"
+                    value={reachEmail}
+                    onChange={(event) => {
+                      setReachEmail(event.target.value);
+                      if (reachError) setReachError("");
+                    }}
+                  />
+                </label>
+              </div>
+              {reachError ? (
+                <p className="reach-error" role="alert">
+                  {reachError}
+                </p>
+              ) : null}
+            </div>
+
+            <div className="nav-row">
+              <button type="button" className="btn-back" onClick={backFromReach}>
+                ← Back
+              </button>
+              <button type="button" className="btn-next ready" onClick={submitReach} disabled={reachBusy}>
+                {reachBusy ? "Sending…" : "See my match"}
+              </button>
+            </div>
           </div>
         )}
 
@@ -733,19 +889,21 @@ export default function App() {
 
             <div className="legal">
               <p>
-                <strong>The important stuff:</strong> This quiz is an educational tool created by
-                Taylor, an independent Ringana Fresh Partner (pending U.S. launch). It is a personal
-                project, not an official Ringana website or assessment, and product information is
-                drawn from Ringana&apos;s published product pages on ringana.com. Matches are general
-                suggestions based on your answers — not personalized medical, dermatological, or
-                nutritional advice. Statements regarding supplements have not been evaluated by the
-                Food and Drug Administration; these products are not intended to diagnose, treat,
-                cure, or prevent any disease. If you are pregnant, nursing, taking medication, or
-                managing a health condition, talk with your healthcare provider before starting any
-                new supplement. Patch-test new skincare if you have sensitive or reactive skin.
-                Product details reflect Ringana&apos;s current international lineup — the final U.S.
-                offering will be confirmed at launch, and some products sold in Europe will not be
-                available in the United States.
+                A match is a starting point from your answers, not a prescription. It is not
+                medical, dermatological, or nutritional advice. Taylor is an independent Ringana
+                partner, and this is not an official Ringana site. Product details come from
+                Ringana&apos;s published pages.
+              </p>
+              <p>
+                Statements about supplements have not been evaluated by the Food and Drug
+                Administration. These products are not intended to diagnose, treat, cure, or prevent
+                any disease. If you are pregnant, nursing, taking medication, or managing a health
+                condition, talk with your healthcare provider before starting a new supplement.
+                Patch-test new skincare if your skin is sensitive. Some products sold in Europe are
+                not on the U.S. shop.
+              </p>
+              <p className="exclusive-note">
+                Someone shared this with you. Keep it between the two of you.
               </p>
               <p className="copyright">© 2026 Swaps Made Simple LLC</p>
             </div>
@@ -755,9 +913,9 @@ export default function App() {
       <ShelfPrompt
         active={screen === "results"}
         href="https://shelf.taygoesfresh.com/?with=tay"
-        title="Want this on your shelf?"
-        body="Open Fresh Shelf and this match can sit on your wishlist. I'll be able to see it there."
-        action="Open your shelf"
+        title="Want to keep your results and learn more about the products?"
+        body="Download Taylor’s Fresh Shelf app. Add products to your shelf, message Taylor directly, build your wishlist, get notified about sales, and more."
+        action="Open Your Fresh Shelf"
       />
 
       {formOpen && (

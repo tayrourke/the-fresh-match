@@ -123,15 +123,14 @@ export function readPartnerShop(loc = typeof window !== "undefined" ? window.loc
 }
 
 export function productHref(shop, slug) {
-  if (!shop) return "";
   const us = usPath(slug);
   if (!us) return "";
   const path = `/produkt/${us}/?lang=en`;
-  if (shop.origin) return shop.origin + path;
-  if (shop.weblink) {
-    return `https://www.ringana.com/produkt/${us}/?lang=en&weblink=${encodeURIComponent(shop.weblink)}`;
+  if (shop && shop.origin) return shop.origin + path;
+  if (shop && shop.weblink) {
+    return `https://www.ringana.us/produkt/${us}/?lang=en&weblink=${encodeURIComponent(shop.weblink)}`;
   }
-  return "";
+  return `https://taylor.ringana.us${path}`;
 }
 
 export function decorateProduct(product, shop) {
@@ -139,9 +138,7 @@ export function decorateProduct(product, shop) {
   const us = usPath(product.slug);
   if (!us) return { ...product, url: "", comingSoon: true };
   const comingSoon = NOT_YET.has(us);
-  const href = productHref(shop, product.slug);
-  if (href) return { ...product, url: href, comingSoon };
-  return { ...product, comingSoon };
+  return { ...product, url: productHref(shop, product.slug), comingSoon };
 }
 
 export function withPartnerLinks(items, shop) {

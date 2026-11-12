@@ -58,7 +58,7 @@ export default function ProductRow({ product, defaultOpen = false }) {
                 rel="noreferrer"
                 tabIndex={open ? 0 : -1}
               >
-                {isPartnerShopUrl(product.url) ? "Shop this →" : "View on ringana.com →"}
+                {isPartnerShopUrl(product.url) || /ringana\.us/i.test(product.url || "") ? "Shop this →" : "View on ringana.com →"}
               </a>
             )}
           </div>

@@ -1,6 +1,6 @@
-/** Ringana product catalog — copy & naming from ringana.com. Links only to www.ringana.com */
+/** Ringana product catalog. Shop links open on Taylor's US shop. */
 
-const productUrl = (slug) => `https://www.ringana.com/produkt/${slug}/?lang=en`;
+const productUrl = (slug) => `https://taylor.ringana.us/produkt/${slug}/?lang=en`;
 
 export const FACE = {
   cleanser: {
