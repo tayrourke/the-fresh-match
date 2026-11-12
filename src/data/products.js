@@ -345,7 +345,7 @@ export const BODY = {
     img: "./products/fresh/fresh-deodorant.png",
     hero: "Frankincense · lemon verbena · zinc stearate · magnesium · elderberry · willow bark · baobab · prickly pear · sesame oil · rice husk water",
     desc: "A water-in-oil emulsion so it can carry plant oils and natural moisturisers alongside deodorising actives. Zinc and magnesium handle odour; lemon verbena supports your skin's own sweat-regulating function rather than blocking it. Entirely without aluminium salts.",
-    use: "One pump per underarm, rubbed in like a cream. If you're coming off an antiperspirant, give it two to three weeks — your body needs to recalibrate.",
+    use: "One pump per underarm, rubbed in like a cream. If you're coming off an antiperspirant, give it two to three weeks — your body needs to recalibrate. The 50 ml pocket is in the shop too, at $16.50.",
   },
   shampoo: {
     id: "shampoo",
