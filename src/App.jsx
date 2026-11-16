@@ -1,16 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FACE_Q, BODY_Q, SUPP_Q, INTENT_Q } from "./data/questions";
+import { FACE_Q, BODY_Q, SUPP_Q } from "./data/questions";
 import {
   buildFace,
   buildBody,
   buildSupp,
-  buildHero,
-  buildPlaybook,
   summarizeAnswers,
-  buildInsight,
-  countUniqueProducts,
 } from "./engine/match";
-import { ProductList } from "./components/ProductRow";
+import { buildLanes, bodyLaneLabel } from "./engine/lanes";
+import { ShopLane, RoutineFold } from "./components/ShopLanes";
 import { LeaveBehindCard } from "./components/LeaveBehindCard";
 import { LegitSection } from "./components/LegitSection";
 import { ShelfPrompt } from "./components/ShelfPrompt";
@@ -30,11 +27,9 @@ import "./index.css";
 const TAYLOR_SHOP = {
   origin: "https://taylor.ringana.us",
   host: "taylor.ringana.us",
-  code: "",
+  code: "TAYFRESH",
   weblink: "",
 };
-
-const FLODESK_FORM_ID = "6a4d7c6b23b85452ae98771e";
 const QUIZ_URL =
   typeof window !== "undefined"
     ? `${window.location.origin}${window.location.pathname}`
@@ -69,18 +64,10 @@ function wantsHairQuestion(answers) {
 function buildQs(path, answers = {}) {
   if (!path) return [];
   const bodyQs = BODY_Q.filter((q) => q.id !== "hairType" || wantsHairQuestion(answers));
-  if (path === "skin") return [...FACE_Q, ...bodyQs, INTENT_Q];
-  if (path === "supp") return [...SUPP_Q, INTENT_Q];
-  if (path === "both") return [...FACE_Q, ...bodyQs, ...SUPP_Q, INTENT_Q];
+  if (path === "skin") return [...FACE_Q, ...bodyQs];
+  if (path === "supp") return [...SUPP_Q];
+  if (path === "both") return [...FACE_Q, ...bodyQs, ...SUPP_Q];
   return [];
-}
-
-function SectionLabel({ children }) {
-  return (
-    <div className="section-label">
-      <span>{children}</span>
-    </div>
-  );
 }
 
 function fitBrandMark(el) {
@@ -105,7 +92,6 @@ export default function App() {
   const [ans, setAns] = useState({});
   const [draft, setDraft] = useState([]);
   const [picked, setPicked] = useState(null);
-  const [formOpen, setFormOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedLinks, setCopiedLinks] = useState(false);
   const [shared, setShared] = useState(false);
@@ -117,6 +103,7 @@ export default function App() {
   const [reachEmail, setReachEmail] = useState("");
   const [reachError, setReachError] = useState("");
   const [reachBusy, setReachBusy] = useState(false);
+  const [dock, setDock] = useState(null);
   const brandRef = useRef(null);
 
   useEffect(() => {
@@ -144,7 +131,15 @@ export default function App() {
     setAns(saved.ans || {});
     setGuestName(saved.name || "");
     setScreen("results");
-    setRestoredBanner(true);
+    let own = false;
+    try {
+      const hash = window.location.hash || "";
+      const token = (hash.match(/[#&]m=([^&]+)/) || [])[1] || "";
+      own = token && sessionStorage.getItem("fm-own-results") === decodeURIComponent(token);
+    } catch {
+      own = false;
+    }
+    setRestoredBanner(!own);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
@@ -156,24 +151,17 @@ export default function App() {
     if (hash && window.location.hash !== hash) {
       window.history.replaceState(null, "", hash);
     }
-  }, [screen, path, ans, guestName]);
-
-  useEffect(() => {
-    if (!formOpen || typeof window.fd !== "function") return;
-    window.fd("form", {
-      formId: FLODESK_FORM_ID,
-      containerEl: "#fd-form-modal",
-    });
-  }, [formOpen]);
-
-  useEffect(() => {
-    if (!formOpen) return undefined;
-    const onKey = (e) => {
-      if (e.key === "Escape") setFormOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [formOpen]);
+    if (!restoredBanner) {
+      const token = (hash.match(/[#&]m=([^&]+)/) || [])[1] || "";
+      if (token) {
+        try {
+          sessionStorage.setItem("fm-own-results", decodeURIComponent(token));
+        } catch {
+          /* private mode */
+        }
+      }
+    }
+  }, [screen, path, ans, guestName, restoredBanner]);
 
   const advance = (nextAns) => {
     const nextQs = buildQs(path, nextAns);
@@ -320,7 +308,6 @@ export default function App() {
     setAns({});
     setDraft([]);
     setPicked(null);
-    setFormOpen(false);
     setCopied(false);
     setCopiedLinks(false);
     setShared(false);
@@ -332,6 +319,7 @@ export default function App() {
     setReachEmail("");
     setReachError("");
     setReachBusy(false);
+    setDock(null);
     window.history.replaceState(null, "", window.location.pathname + window.location.search);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -348,14 +336,16 @@ export default function App() {
     () => (screen === "results" && (path === "supp" || path === "both") ? buildSupp(ans) : null),
     [screen, path, ans]
   );
-  const hero = useMemo(
-    () => (screen === "results" ? buildHero(ans, path, face, body, supp) : null),
-    [screen, ans, path, face, body, supp]
-  );
-  const playbook = useMemo(
-    () => (screen === "results" ? buildPlaybook(ans, path, hero, face, body, supp) : null),
-    [screen, ans, path, hero, face, body, supp]
-  );
+  const lanes = useMemo(() => {
+    if (screen !== "results") return { skincare: [], body: [], bodyMore: [], supplements: [] };
+    const built = buildLanes(face, body, supp);
+    return {
+      skincare: withPartnerLinks(built.skincare, TAYLOR_SHOP),
+      body: withPartnerLinks(built.body, TAYLOR_SHOP),
+      bodyMore: withPartnerLinks(built.bodyMore, TAYLOR_SHOP),
+      supplements: withPartnerLinks(built.supplements, TAYLOR_SHOP),
+    };
+  }, [screen, face, body, supp]);
 
   const today = new Date().toLocaleDateString("en-US", {
     month: "long",
@@ -363,30 +353,19 @@ export default function App() {
     year: "numeric",
   });
   const summary = summarizeAnswers(ans, path);
-  const insight = useMemo(
-    () => (screen === "results" ? buildInsight(ans, path, hero?.items) : ""),
-    [screen, ans, path, hero]
-  );
-  const productCount = useMemo(() => {
-    if (screen !== "results") return 0;
-    const n = countUniqueProducts(face, body, supp);
-    return typeof n === "number" ? n : 0;
-  }, [screen, face, body, supp]);
 
   const restoreUrl = useMemo(
     () => (path ? buildRestoreUrl(QUIZ_URL, { path, ans, name: guestName }) : QUIZ_URL),
     [path, ans, guestName]
   );
 
-  const linkItems = (items) => withPartnerLinks(items, TAYLOR_SHOP);
-
   const briefPayload = () => ({
     summary,
-    hero: hero ? { ...hero, items: linkItems(hero.items) } : hero,
-    playbook: playbook ? { ...playbook, addNext: linkItems(playbook.addNext) } : playbook,
+    lanes,
     restoreUrl,
     name: guestName,
     shopHost: TAYLOR_SHOP.host,
+    code: TAYLOR_SHOP.code,
   });
 
   const copyText = async () => {
@@ -687,16 +666,29 @@ export default function App() {
           <div className="results">
             {restoredBanner && (
               <div className="restore-banner">
-                Restored a shared match — scroll to the bottom when you&apos;re ready to name it or
-                send it.
+                {guestName.trim() ? `This is ${guestName.trim()}'s match.` : "This is your match."}
               </div>
             )}
 
             <div className="result-hero result-hero-slim">
               <div className="eyebrow">{today}</div>
               <h2>{guestName.trim() ? `${guestName.trim()}'s Fresh Match` : "Your Fresh Match"}</h2>
-              {summary && <p className="results-summary">{summary}</p>}
             </div>
+
+            {TAYLOR_SHOP.code && (
+              <aside className="code-block" aria-label="Your savings code">
+                <p className="code-kicker">Your first order</p>
+                <p>
+                  Use <strong>{TAYLOR_SHOP.code}</strong> to save $25 on your first order of $60+.
+                </p>
+              </aside>
+            )}
+
+            <ShopLane label="Skincare" items={lanes.skincare} />
+            <ShopLane label={bodyLaneLabel(lanes.body)} items={lanes.body} more={lanes.bodyMore} />
+            <ShopLane label="Supplements" items={lanes.supplements} />
+
+            <RoutineFold face={face} />
 
             <LeaveBehindCard
               name={guestName}
@@ -707,147 +699,12 @@ export default function App() {
               summary={summary}
             />
 
-            <p className="recommend-note">
-              This quiz is just a recommendation from your answers, not a prescription. Send it to
-              me before you order and I&apos;ll help you sort what to start with.
-            </p>
-            <p className="shop-note">
-              Every product that is on the US shop opens at taylor.ringana.us.
-            </p>
-
-            {hero?.items?.length > 0 && (
-              <>
-                <SectionLabel>{hero.title}</SectionLabel>
-                <p className="section-blurb">{hero.subtitle}</p>
-                <ProductList items={linkItems(hero.items)} openFirst />
-              </>
-            )}
-
-            {insight && (
-              <div className="insight-card">
-                <div className="insight-label">Why this match</div>
-                <p>{insight}</p>
-              </div>
-            )}
-
-            {playbook && (
-              <div className="playbook-card">
-                <div className="insight-label">How to start</div>
-                <div className="playbook-grid">
-                  <div>
-                    <h4>Buy first</h4>
-                    <ul>
-                      {playbook.buyFirst.map((p) => (
-                        <li key={p.id}>{p.name}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  {playbook.addNext.length > 0 && (
-                    <div>
-                      <h4>Add next</h4>
-                      <ul>
-                        {playbook.addNext.map((p) => (
-                          <li key={p.id}>{p.name}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-                <div className="playbook-week">
-                  <h4>Week 1</h4>
-                  <ul>
-                    {playbook.week1.map((line) => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
-                </div>
-                <p className="playbook-note">
-                  Screenshot your ritual card or send the brief from the bottom — I&apos;ll tell you
-                  what I&apos;d actually start with.
-                </p>
-              </div>
-            )}
-
-            <div className="full-match-head">
-              <SectionLabel>Full match</SectionLabel>
-              <p className="section-blurb">
-                Everything that fit your answers — tap to expand. Start here above is still your
-                first order.
-              </p>
-            </div>
-
-            {face && (
-              <>
-                <SectionLabel>Morning</SectionLabel>
-                <ProductList items={linkItems(face.am)} />
-                <SectionLabel>Evening</SectionLabel>
-                <ProductList items={linkItems(face.pm)} />
-                {face.weekly.length > 0 && (
-                  <>
-                    <SectionLabel>Weekly</SectionLabel>
-                    <ProductList items={linkItems(face.weekly)} />
-                  </>
-                )}
-              </>
-            )}
-
-            {body && body.length > 0 && (
-              <>
-                <SectionLabel>Your everyday swaps</SectionLabel>
-                <ProductList items={linkItems(body)} />
-              </>
-            )}
-
-            {supp && (
-              <>
-                {supp.daily.length > 0 && (
-                  <>
-                    <SectionLabel>
-                      {supp.approach === "targeted" ? "Suggested foundation" : "Overall foundation"}
-                    </SectionLabel>
-                    <ProductList items={linkItems(supp.daily)} />
-                  </>
-                )}
-                {supp.targeted.length > 0 && (
-                  <>
-                    <SectionLabel>
-                      {supp.approach === "overall" ? "Focused add-ons" : "Targeted for your goals"}
-                    </SectionLabel>
-                    <ProductList items={linkItems(supp.targeted)} />
-                  </>
-                )}
-              </>
-            )}
-
-            <div className="edu-block">
-              <div className="k">Remember why this line hits different</div>
-              {[
-                [
-                  "Made fresh — not warehoused forever",
-                  "Roughly twice-weekly production, real expiration dates, plant actives that still mean something when they arrive.",
-                ],
-                [
-                  "Airless glass, campus-made",
-                  "Their formulas, their campus, airless packaging — so you get potency without the preservative load.",
-                ],
-                [
-                  "Talk it through with me",
-                  "Your shortlist is a starting point. Screenshot your ritual card or send the brief — I'll tell you what I'd actually begin with.",
-                ],
-              ].map(([t, d]) => (
-                <div className="edu-item" key={t}>
-                  <h4>{t}</h4>
-                  <p>{d}</p>
-                </div>
-              ))}
-            </div>
-
             <div className="cta-block share-footer">
               <div className="cta-eyebrow">Save &amp; send</div>
               <h3>Keep this on your shelf</h3>
               <p>
-                Continue on your shelf so I can see your match — suggestions land on your wishlist,
-                not your cabinet. Or IG / WhatsApp the brief if you’d rather.
+                Continue on your shelf so I can see your match. Suggestions land on your wishlist,
+                not your cabinet.
               </p>
 
               <label className="name-field name-field-on-pine">
@@ -862,14 +719,24 @@ export default function App() {
               </label>
 
               <div className="result-stats">
-                <div className="stat">
-                  <strong>{hero?.items?.length || 0}</strong>
-                  <span>start here</span>
-                </div>
-                <div className="stat">
-                  <strong>{productCount}</strong>
-                  <span>full match</span>
-                </div>
+                {lanes.skincare.length > 0 && (
+                  <div className="stat">
+                    <strong>{lanes.skincare.length}</strong>
+                    <span>skincare</span>
+                  </div>
+                )}
+                {lanes.body.length > 0 && (
+                  <div className="stat">
+                    <strong>{lanes.body.length}</strong>
+                    <span>{bodyLaneLabel(lanes.body) === "Body & hair" ? "body & hair" : "body"}</span>
+                  </div>
+                )}
+                {lanes.supplements.length > 0 && (
+                  <div className="stat">
+                    <strong>{lanes.supplements.length}</strong>
+                    <span>supplements</span>
+                  </div>
+                )}
               </div>
 
               <div className="cta-actions">
@@ -879,41 +746,55 @@ export default function App() {
                 >
                   Continue on your shelf
                 </a>
-                <button type="button" className="btn-ghost btn-ghost-on-pine" onClick={instagramTaylor}>
-                  Message on IG
+              </div>
+              <div className="dock-pair">
+                <button
+                  type="button"
+                  className={`btn-ghost btn-ghost-on-pine${dock === "share" ? " is-open" : ""}`}
+                  aria-expanded={dock === "share"}
+                  onClick={() => setDock(dock === "share" ? null : "share")}
+                >
+                  {shared || copied || copiedLinks ? "Copied" : "Share"}
                 </button>
-                <button type="button" className="btn-ghost btn-ghost-on-pine" onClick={whatsAppTaylor}>
-                  WhatsApp
-                </button>
-                <button type="button" className="btn-ghost btn-ghost-on-pine" onClick={shareMatch}>
-                  {shared ? "Shared!" : "Share"}
+                <button
+                  type="button"
+                  className={`btn-ghost btn-ghost-on-pine${dock === "contact" ? " is-open" : ""}`}
+                  aria-expanded={dock === "contact"}
+                  onClick={() => setDock(dock === "contact" ? null : "contact")}
+                >
+                  Contact
                 </button>
               </div>
-              <div className="cta-actions cta-actions-secondary">
-                <button type="button" className="btn-ghost btn-ghost-on-pine" onClick={copyText}>
-                  {copied ? "Copied!" : "Copy for text"}
-                </button>
-                <button type="button" className="btn-ghost btn-ghost-on-pine" onClick={copyRestoreLink}>
-                  Copy match link
-                </button>
-                <button type="button" className="btn-ghost btn-ghost-on-pine" onClick={copyWithLinks}>
-                  {copiedLinks ? "Copied!" : "Copy with shop links"}
-                </button>
-              </div>
+              {dock === "share" && (
+                <div className="dock-menu" role="menu">
+                  <button type="button" role="menuitem" onClick={shareMatch}>
+                    {shared ? "Shared" : "Share this match"}
+                  </button>
+                  <button type="button" role="menuitem" onClick={copyText}>
+                    {copied ? "Copied" : "Copy for text"}
+                  </button>
+                  <button type="button" role="menuitem" onClick={copyRestoreLink}>
+                    Copy match link
+                  </button>
+                  <button type="button" role="menuitem" onClick={copyWithLinks}>
+                    {copiedLinks ? "Copied" : "Copy with shop links"}
+                  </button>
+                </div>
+              )}
+              {dock === "contact" && (
+                <div className="dock-menu" role="menu">
+                  <button type="button" role="menuitem" onClick={instagramTaylor}>
+                    Message on Instagram
+                  </button>
+                  <button type="button" role="menuitem" onClick={whatsAppTaylor}>
+                    WhatsApp
+                  </button>
+                </div>
+              )}
               {sentHint && <p className="sent-hint">{sentHint}</p>}
-
-              <div className="cta-actions cta-actions-footer">
-                <button type="button" className="btn-ghost btn-ghost-on-pine" onClick={restart}>
-                  Retake the quiz
-                </button>
-              </div>
-              <p className="cta-soft">
-                Optional:{" "}
-                <button type="button" className="linkish" onClick={() => setFormOpen(true)}>
-                  join for US launch updates
-                </button>
-                .
-              </p>
+              <button type="button" className="retake-quiet" onClick={restart}>
+                Retake the quiz
+              </button>
             </div>
 
             <div className="legal">
@@ -942,30 +823,10 @@ export default function App() {
       <ShelfPrompt
         active={screen === "results"}
         href="https://shelf.taygoesfresh.com/?with=tay"
-        title="Want to keep your results and learn more about the products?"
-        body="Download Taylor’s Fresh Shelf app. Add products to your shelf, message Taylor directly, build your wishlist, get notified about sales, and more."
-        action="Open Your Fresh Shelf"
+        title="Want to keep looking?"
+        body="Fresh Shelf is the app. Your match can live there. You can learn the products, save what you'd love, message me, and hear about sales."
+        action="Open Fresh Shelf"
       />
-
-      {formOpen && (
-        <div className="fd-overlay" role="dialog" aria-modal="true" aria-label="Join founding list">
-          <button type="button" className="fd-backdrop" aria-label="Close" onClick={() => setFormOpen(false)} />
-          <div className="fd-modal">
-            <button type="button" className="fd-close" onClick={() => setFormOpen(false)}>
-              ×
-            </button>
-            <h3>US launch updates</h3>
-            <p className="fd-lead">Optional — only if you want launch notes from Taylor.</p>
-            <div id="fd-form-modal" />
-            <p className="fd-fallback">
-              Form not loading?{" "}
-              <a href="https://tayrourke.github.io/tay-goes-fresh/" target="_blank" rel="noreferrer">
-                Visit tay-goes-fresh
-              </a>
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
-const WAIT_MS = 60000;
+const WAIT_MS = 12000;
 
-/** After a minute on results, offer Taylor's Fresh Shelf. */
+/** After a short pause on results, offer Taylor's Fresh Shelf. */
 export function ShelfPrompt({ active, href, title, body, action }) {
   const [open, setOpen] = useState(false);
 
@@ -51,6 +51,7 @@ export function ShelfPrompt({ active, href, title, body, action }) {
     <div className="shelf-prompt" role="dialog" aria-modal="true" aria-labelledby="shelf-prompt-title">
       <button type="button" className="shelf-prompt-backdrop" aria-label="Dismiss" onClick={dismiss} />
       <div className="shelf-prompt-card">
+        <img className="shelf-prompt-icon" src="./fresh-shelf.png" alt="" />
         <h3 id="shelf-prompt-title">{title}</h3>
         <p>{body}</p>
         <div className="shelf-prompt-actions">

@@ -1,20 +1,47 @@
+function laneBlocks(lanes, withUrl) {
+  if (!lanes) return null;
+  const groups = [
+    ["Skincare", lanes.skincare],
+    ["Body", lanes.body],
+    ["Supplements", lanes.supplements],
+  ];
+  const blocks = [];
+  groups.forEach(([title, items]) => {
+    if (!items?.length) return;
+    blocks.push("", `${title}:`);
+    items.forEach((product, index) => {
+      if (withUrl) {
+        blocks.push(`${index + 1}. ${product.name}${product.url ? `\n   ${product.url}` : ""}`);
+      } else {
+        const why = product.why ? ` — ${shortWhy(product.why)}` : "";
+        blocks.push(`${index + 1}. ${product.name}${why}`);
+      }
+    });
+  });
+  return blocks.length ? blocks : null;
+}
+
 /** Compact, SMS-friendly match brief — no product URL spam. */
-export function formatTextBrief({ summary, hero, playbook, restoreUrl, name }) {
+export function formatTextBrief({ summary, hero, playbook, lanes, restoreUrl, name, code }) {
   const who = name?.trim() ? `${name.trim()}'s Fresh Match` : "My Fresh Match";
+  const grouped = laneBlocks(lanes, false);
   const lines = [
     `${who} — Ringana with Taylor`,
     summary ? `Profile: ${summary}` : null,
-    "",
-    "Start here:",
-    ...(hero?.items || []).map((p, i) => {
-      const why = p.why ? ` — ${shortWhy(p.why)}` : "";
-      return `${i + 1}. ${p.name}${why}`;
-    }),
+    code ? `Savings code: ${code} — $25 off your first order of $60+.` : null,
+    ...(grouped || [
+      "",
+      "Start here:",
+      ...(hero?.items || []).map((p, i) => {
+        const why = p.why ? ` — ${shortWhy(p.why)}` : "";
+        return `${i + 1}. ${p.name}${why}`;
+      }),
+    ]),
   ];
-  if (playbook?.addNext?.length) {
+  if (!grouped && playbook?.addNext?.length) {
     lines.push("", "Add next:", ...playbook.addNext.slice(0, 3).map((p) => `• ${p.name}`));
   }
-  if (playbook?.week1?.length) {
+  if (!grouped && playbook?.week1?.length) {
     lines.push("", "Week 1:", ...playbook.week1.map((line) => `• ${line}`));
   }
   lines.push(
@@ -26,18 +53,22 @@ export function formatTextBrief({ summary, hero, playbook, restoreUrl, name }) {
   return lines.filter((l) => l !== null).join("\n");
 }
 
-/** Same brief with ringana.com links for shopping. */
-export function formatLinksBrief({ summary, hero, playbook, restoreUrl, name, shopHost }) {
+/** Same brief with shop links. */
+export function formatLinksBrief({ summary, hero, playbook, lanes, restoreUrl, name, shopHost, code }) {
   const who = name?.trim() ? `${name.trim()}'s Fresh Match` : "My Fresh Match";
+  const grouped = laneBlocks(lanes, true);
   const lines = [
     `${who} — Ringana with Taylor`,
     summary ? `Profile: ${summary}` : null,
+    code ? `Savings code: ${code} — $25 off your first order of $60+.` : null,
     shopHost ? `Shop: https://${shopHost}/?lang=en` : null,
-    "",
-    "Start here:",
-    ...(hero?.items || []).map((p, i) => `${i + 1}. ${p.name}${p.url ? `\n   ${p.url}` : ""}`),
+    ...(grouped || [
+      "",
+      "Start here:",
+      ...(hero?.items || []).map((p, i) => `${i + 1}. ${p.name}${p.url ? `\n   ${p.url}` : ""}`),
+    ]),
   ];
-  if (playbook?.addNext?.length) {
+  if (!grouped && playbook?.addNext?.length) {
     lines.push(
       "",
       "Add next:",
