@@ -396,6 +396,13 @@ export function buildBody(a) {
         ? "Conditioner for dry hair. Leave it on for a minute."
         : "Conditioner after the shampoo."));
     }
+    // has() is true for every key on the auto path. Only add these when they were ticked.
+    if (raw.includes("oral")) {
+      out.push(item(BODY.toothOil, "Teeth & gums", "Oil pulling. Swish it before you brush."));
+    }
+    if (raw.includes("wipes")) {
+      out.push(item(BODY.stayFresh, "Bum care", "Foam on toilet paper, for the bum and the intimate area."));
+    }
     return out;
   }
 
@@ -449,8 +456,8 @@ export function buildBody(a) {
     }
   }
 
-  if (has("oral")) out.push(item(BODY.toothOil, "Oral care", "Oil pulling. Swish it before you brush."));
-  if (has("wipes")) out.push(item(BODY.stayFresh, "Fresh-up", "Foam on toilet paper, instead of a wet wipe."));
+  if (has("oral")) out.push(item(BODY.toothOil, "Teeth & gums", "Oil pulling. Swish it before you brush."));
+  if (has("wipes")) out.push(item(BODY.stayFresh, "Bum care", "Foam on toilet paper, for the bum and the intimate area."));
 
   return out;
 }
